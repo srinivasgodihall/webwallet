@@ -37,14 +37,11 @@ mod tests {
     fn empty_address_is_blank() {
         let address = Address::new("".to_string());
         assert!(address.is_blank());
-
     }
 
     #[test]
     fn whitespace_only_address_is_blank() {
         let address = Address::new("   ".to_string());
         assert!(address.is_blank());
-
     }
-
 }

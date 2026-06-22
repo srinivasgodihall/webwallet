@@ -16,7 +16,6 @@ impl WalletStatus {
             WalletStatus::Clear => "NO wallet loaded",
         }
     }
-    
 }
 
 #[cfg(test)]

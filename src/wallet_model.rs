@@ -1,6 +1,6 @@
 use crate::account::Account;
-use crate::wallet::WalletStatus;
 use crate::address::Address;
+use crate::wallet::WalletStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletModel {
@@ -55,11 +55,8 @@ mod tests {
         let wallet = WalletModel {
             status: WalletStatus::Locked,
             accounts: vec![
-                Account::new(
-                    Network::EthereumSepolia,
-                    Address::new("0x1234".to_string()),
-                )
-                .expect("test address should be valid"),
+                Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+                    .expect("test address should be valid"),
                 Account::new(
                     Network::SolanaDevnet,
                     Address::new("solana-address".to_string()),
@@ -100,7 +97,7 @@ mod tests {
         assert_eq!(wallet.status, WalletStatus::Unlocked);
     }
 
-     #[test]
+    #[test]
     fn clear_resets_wallet_to_no_wallet() {
         let mut wallet = WalletModel::new_empty();
 
@@ -113,11 +110,8 @@ mod tests {
     fn add_account_stores_public_account_metadata() {
         let mut wallet = WalletModel::new_empty();
 
-        let account = Account::new (
-             Network::EthereumSepolia,
-             Address::new("0x1234".to_string()),
-        )
-        .expect("test address should be valid");
+        let account = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+            .expect("test address should be valid");
 
         wallet.add_account(account);
 

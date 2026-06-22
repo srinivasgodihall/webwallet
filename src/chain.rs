@@ -21,7 +21,6 @@ impl Chain {
             Chain::Ethereum => Network::EthereumSepolia,
             Chain::Solana => Network::SolanaDevnet,
             Chain::Bitcoin => Network::BitcoinTestnet,
-            
         }
     }
 }

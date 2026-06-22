@@ -72,7 +72,6 @@ mod tests {
             Network::EthereumSepolia.rpc_url(),
             Network::SolanaDevnet.rpc_url(),
             Network::BitcoinTestnet.rpc_url(),
-
         ];
 
         for url in urls {

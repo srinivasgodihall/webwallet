@@ -1,9 +1,9 @@
 mod account;
+mod address;
 mod chain;
 mod network;
 mod wallet;
 mod wallet_model;
-mod address;
 
 use crate::wallet::WalletStatus;
 use leptos::mount::mount_to_body;
