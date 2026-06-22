@@ -30,6 +30,7 @@ impl WalletModel {
 
     pub fn clear(&mut self) {
         self.status = WalletStatus::NoWallet;
+        self.accounts.clear();
     }
 
     pub fn add_account(&mut self, account: Account) {
@@ -54,14 +55,16 @@ mod tests {
         let wallet = WalletModel {
             status: WalletStatus::Locked,
             accounts: vec![
-                Account {
-                    network: Network::EthereumSepolia,
-                    address: Address::new("0x1234".to_string()),
-                },
-                Account {
-                    network: Network::SolanaDevnet,
-                    address: Address::new("solana-address".to_string()),
-                },
+                Account::new(
+                    Network::EthereumSepolia,
+                    Address::new("0x1234".to_string()),
+                )
+                .expect("test address should be valid"),
+                Account::new(
+                    Network::SolanaDevnet,
+                    Address::new("solana-address".to_string()),
+                )
+                .expect("test address should be valid"),
             ],
         };
 
@@ -110,15 +113,16 @@ mod tests {
     fn add_account_stores_public_account_metadata() {
         let mut wallet = WalletModel::new_empty();
 
-        let account = Account {
-            network: Network::EthereumSepolia,
-            address: Address::new("0x1234".to_string()),
-        };
+        let account = Account::new (
+             Network::EthereumSepolia,
+             Address::new("0x1234".to_string()),
+        )
+        .expect("test address should be valid");
 
         wallet.add_account(account);
 
         assert_eq!(wallet.account_count(), 1);
-        assert_eq!(wallet.accounts[0].address.as_str(), "0x1234");
-        assert_eq!(wallet.accounts[0].network, Network::EthereumSepolia);
+        assert_eq!(wallet.accounts[0].address().as_str(), "0x1234");
+        assert_eq!(wallet.accounts[0].network(), Network::EthereumSepolia);
     }
 }

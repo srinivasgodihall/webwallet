@@ -4,8 +4,8 @@ use crate::address::Address;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
-    pub network: Network,
-    pub address: Address,
+    network: Network,
+    address: Address,
 }
 
 impl Account {
@@ -20,6 +20,14 @@ impl Account {
             Some(Self{network, address})
         }
     }
+
+    pub fn network(&self) -> Network {
+        self.network
+    }
+
+    pub fn address(&self) -> &Address {
+        &self.address
+    }
 }
 
 #[cfg(test)]
@@ -33,7 +41,7 @@ mod tests {
             address: Address::new("0x1234".to_string()),
         };
 
-        assert_eq!(account.network, Network::EthereumSepolia);
+        assert_eq!(account.network(), Network::EthereumSepolia);
         assert_eq!(account.address.as_str(), "0x1234");
     }
 
