@@ -8,6 +8,11 @@ pub struct WalletModel {
     pub accounts: Vec<Account>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalletModelError {
+    DuplicateAccount,
+}
+
 impl WalletModel {
     pub fn new_empty() -> Self {
         Self {
@@ -33,8 +38,24 @@ impl WalletModel {
         self.accounts.clear();
     }
 
-    pub fn add_account(&mut self, account: Account) {
+    pub fn add_account(&mut self, account: Account) -> Result<(), WalletModelError> {
+        let duplicate_exists = self.accounts.iter().any(|existing| {
+            existing.network() == account.network() && existing.address() == account.address()
+        });
+
+        if duplicate_exists {
+            return Err(WalletModelError::DuplicateAccount);
+        }
         self.accounts.push(account);
+        Ok(())
+    }
+}
+
+impl WalletModelError {
+    pub fn message(self) -> &'static str {
+        match self {
+            WalletModelError::DuplicateAccount => "Account already exists",
+        }
     }
 }
 
@@ -113,10 +134,36 @@ mod tests {
         let account = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
             .expect("test address should be valid");
 
-        wallet.add_account(account);
+        assert!(wallet.add_account(account).is_ok());
 
         assert_eq!(wallet.account_count(), 1);
         assert_eq!(wallet.accounts[0].address().as_str(), "0x1234");
         assert_eq!(wallet.accounts[0].network(), Network::EthereumSepolia);
+    }
+
+    #[test]
+    fn add_account_rejects_duplicate_account() {
+        let mut wallet = WalletModel::new_empty();
+
+        let first = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+            .expect("test address shoiuld be valid");
+
+        let duplicate = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+            .expect("test address shoiuld be valid");
+
+        assert_eq!(wallet.add_account(first), Ok(()));
+        assert_eq!(
+            wallet.add_account(duplicate),
+            Err(WalletModelError::DuplicateAccount)
+        );
+        assert_eq!(wallet.account_count(), 1);
+    }
+
+    #[test]
+    fn duplicate_account_error_has_clear_message() {
+        assert_eq!(
+            WalletModelError::DuplicateAccount.message(),
+            "Account already exists"
+        );
     }
 }
