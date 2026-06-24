@@ -1,11 +1,12 @@
 use crate::account::Account;
 use crate::address::Address;
+use crate::network::Network;
 use crate::wallet::WalletStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletModel {
     pub status: WalletStatus,
-    pub accounts: Vec<Account>,
+    accounts: Vec<Account>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,6 +20,12 @@ impl WalletModel {
             status: WalletStatus::NoWallet,
             accounts: Vec::new(),
         }
+    }
+
+    pub fn find_account(&self, network: Network, address: &Address) -> Option<&Account> {
+        self.accounts
+            .iter()
+            .find(|account| account.network() == network && account.address() == address)
     }
 
     pub fn account_count(&self) -> usize {
@@ -49,6 +56,18 @@ impl WalletModel {
         self.accounts.push(account);
         Ok(())
     }
+
+    pub fn accounts(&self) -> &[Account] {
+        &self.accounts
+    }
+
+    pub fn status(&self) -> WalletStatus {
+        self.status
+    }
+
+    pub fn has_account(&self, network: Network, address: &Address) -> bool {
+        self.find_account(network, address).is_some()
+    }
 }
 
 impl WalletModelError {
@@ -68,7 +87,7 @@ mod tests {
     fn new_empty_wallet_has_no_wallet_status_and_no_account() {
         let wallet = WalletModel::new_empty();
 
-        assert_eq!(wallet.status, WalletStatus::NoWallet);
+        assert_eq!(wallet.status(), WalletStatus::NoWallet);
         assert_eq!(wallet.account_count(), 0);
     }
     #[test]
@@ -106,7 +125,7 @@ mod tests {
 
         wallet.lock();
 
-        assert_eq!(wallet.status, WalletStatus::Locked);
+        assert_eq!(wallet.status(), WalletStatus::Locked);
     }
 
     #[test]
@@ -115,7 +134,7 @@ mod tests {
 
         wallet.unlock();
 
-        assert_eq!(wallet.status, WalletStatus::Unlocked);
+        assert_eq!(wallet.status(), WalletStatus::Unlocked);
     }
 
     #[test]
@@ -137,8 +156,8 @@ mod tests {
         assert!(wallet.add_account(account).is_ok());
 
         assert_eq!(wallet.account_count(), 1);
-        assert_eq!(wallet.accounts[0].address().as_str(), "0x1234");
-        assert_eq!(wallet.accounts[0].network(), Network::EthereumSepolia);
+        assert_eq!(wallet.accounts()[0].address().as_str(), "0x1234");
+        assert_eq!(wallet.accounts()[0].network(), Network::EthereumSepolia);
     }
 
     #[test]
@@ -165,5 +184,53 @@ mod tests {
             WalletModelError::DuplicateAccount.message(),
             "Account already exists"
         );
+    }
+
+    #[test]
+    fn find_account_returns_matching_account() {
+        let mut wallet = WalletModel::new_empty();
+
+        let account = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+            .expect("test address should be valid");
+        assert_eq!(wallet.add_account(account), Ok(()));
+
+        let search_address = Address::new("0x1234".to_string());
+        let found = wallet.find_account(Network::EthereumSepolia, &search_address);
+
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().address().as_str(), "0x1234");
+    }
+
+    #[test]
+    fn find_account_returns_none_for_missing_account() {
+        let wallet = WalletModel::new_empty();
+
+        let search_address = Address::new("0x9999".to_string());
+        let found = wallet.find_account(Network::EthereumSepolia, &search_address);
+
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn has_account_returns_true_for_existing_account() {
+        let mut wallet = WalletModel::new_empty();
+
+        let account = Account::new(Network::EthereumSepolia, Address::new("0x1234".to_string()))
+            .expect("test address should be valid");
+
+        assert_eq!(wallet.add_account(account), Ok(()));
+
+        let search_address = Address::new("0x1234".to_string());
+
+        assert!(wallet.has_account(Network::EthereumSepolia, &search_address));
+    }
+
+    #[test]
+    fn has_account_returns_false_for_missing_account() {
+        let wallet = WalletModel::new_empty();
+
+        let search_address = Address::new("0x9999".to_string());
+
+        assert!(!wallet.has_account(Network::EthereumSepolia, &search_address));
     }
 }

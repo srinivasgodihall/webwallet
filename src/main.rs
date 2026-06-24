@@ -1,6 +1,7 @@
 mod account;
 mod address;
 mod chain;
+mod chain_adapter;
 mod network;
 mod wallet;
 mod wallet_model;
