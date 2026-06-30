@@ -27,7 +27,19 @@ impl ChainAdapter for EthereumAdapter {
     }
 
     fn is_valid_address(&self, address: &Address) -> bool {
-        !address.is_blank()
+        let value = address.as_str();
+
+        if value.len() != 42 {
+            return false;
+        }
+
+        if !value.starts_with("0x") {
+            return false;
+        }
+
+        value[2..]
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
     }
 }
 
@@ -96,9 +108,25 @@ mod tests {
         assert!(!adapter.is_valid_address(&whitespace));
     }
 
+    // #[test]
+    // fn ethereum_adapter_rejects_blank_addresses() {
+    //     assert_basic_address_validation(EthereumAdapter);
+    // }
+
     #[test]
-    fn ethereum_adapter_rejects_blank_addresses() {
-        assert_basic_address_validation(EthereumAdapter);
+    fn ethereum_adapter_rejects_blank_address() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("".to_string());
+
+        assert!(!adapter.is_valid_address(&address));
+    }
+
+    #[test]
+    fn ethereum_adapter_rejects_whitespace_address() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("   ".to_string());
+
+        assert!(!adapter.is_valid_address(&address));
     }
 
     #[test]
@@ -109,5 +137,37 @@ mod tests {
     #[test]
     fn bitcoin_adapter_rejects_blank_addresses() {
         assert_basic_address_validation(BitcoinAdapter);
+    }
+
+    #[test]
+    fn ethereum_adapter_accepts_basic_hex_address() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("0x0000000000000000000000000000000000000000".to_string());
+
+        assert!(adapter.is_valid_address(&address));
+    }
+
+    #[test]
+    fn ethereum_adapter_rejects_address_without_prefix() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("0000000000000000000000000000000000000000".to_string());
+
+        assert!(!adapter.is_valid_address(&address));
+    }
+
+    #[test]
+    fn ethereum_adapter_rejects_wrong_length_address() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("0x1234".to_string());
+
+        assert!(!adapter.is_valid_address(&address));
+    }
+
+    #[test]
+    fn ethereum_adapter_rejects_non_hex_address() {
+        let adapter = EthereumAdapter;
+        let address = Address::new("0x000000000000000000000000000000000000000g".to_string());
+
+        assert!(!adapter.is_valid_address(&address));
     }
 }
