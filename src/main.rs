@@ -4,6 +4,7 @@ mod app_config;
 mod chain;
 mod chain_adapter;
 mod network;
+mod secret;
 mod wallet;
 mod wallet_model;
 
