@@ -12,6 +12,8 @@ pub struct WalletModel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WalletModelError {
     DuplicateAccount,
+    InvalidAddress,
+    WrongNetwork,
 }
 
 impl WalletModel {
@@ -74,6 +76,8 @@ impl WalletModelError {
     pub fn message(self) -> &'static str {
         match self {
             WalletModelError::DuplicateAccount => "Account already exists",
+            WalletModelError::InvalidAddress => "Address is not valid for this chain",
+            WalletModelError::WrongNetwork => "Account network does not match adapter network",
         }
     }
 }
@@ -232,5 +236,21 @@ mod tests {
         let search_address = Address::new("0x9999".to_string());
 
         assert!(!wallet.has_account(Network::EthereumSepolia, &search_address));
+    }
+
+    #[test]
+    fn invalid_address_error_has_clear_message() {
+        assert_eq!(
+            WalletModelError::InvalidAddress.message(),
+            "Address is not valid for this chain"
+        );
+    }
+
+    #[test]
+    fn wrong_network_error_has_clear_message() {
+        assert_eq!(
+            WalletModelError::WrongNetwork.message(),
+            "Account network does not match adapter network"
+        );
     }
 }

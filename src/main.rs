@@ -1,5 +1,6 @@
 mod account;
 mod address;
+mod app_config;
 mod chain;
 mod chain_adapter;
 mod network;
