@@ -9,6 +9,7 @@ mod solana_wallet;
 mod wallet;
 mod wallet_model;
 
+use crate::solana_wallet::{GeneratedSolanaWallet, generate_solana_wallet};
 use crate::wallet::WalletStatus;
 use leptos::mount::mount_to_body;
 use leptos::prelude::*;
@@ -20,6 +21,8 @@ fn main() {
 #[component]
 fn App() -> impl IntoView {
     let (wallet_status, set_wallet_status) = signal(WalletStatus::NoWallet);
+    let (generated_wallet, set_generated_wallet) = signal::<Option<GeneratedSolanaWallet>>(None);
+
     view! {
         <style>
             "
@@ -184,6 +187,30 @@ fn App() -> impl IntoView {
                 font-weight: 800;
             }
 
+            .address-value {
+                font-family:
+                    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                    \"Liberation Mono\", monospace;
+                font-size: 0.95rem;
+                line-height: 1.45;
+                overflow-wrap: anywhere;
+            }
+
+            .primary-action {
+                margin-top: 14px;
+                border: 0;
+                border-radius: 8px;
+                padding: 10px 12px;
+                background: #1f6f45;
+                color: #ffffff;
+                cursor: pointer;
+                font-weight: 800;
+            }
+
+            .primary-action:hover {
+                background: #185a38;
+            }
+
             .workspace {
                 display: grid;
                 grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
@@ -315,9 +342,9 @@ fn App() -> impl IntoView {
                 <section class="topbar">
                     <div class="page-title">
                         <h2>"Wallet Overview"</h2>
-                        <p>"Frontend scaffold only. Wallet generation, storage, signing, and RPC logic come later."</p>
+                        <p>"Solana Devnet wallet generation runs in browser memory only. Storage, signing, and RPC logic come later."</p>
                     </div>
-                    <div class="network-pill">"Sepolia testnet first"</div>
+                    <div class="network-pill">"Solana Devnet only"</div>
                 </section>
 
                 <section class="summary-grid" aria-label="Wallet summary">
@@ -325,15 +352,30 @@ fn App() -> impl IntoView {
                         <p class="panel-label">"Wallet status"</p>
                         <p class="panel-value">{move || wallet_status.get().label()}</p>
                         <button
+                            class="primary-action"
                             type="button"
-                            on:click=move |_| set_wallet_status.set(WalletStatus::Locked)
+                            on:click=move |_| {
+                                let wallet = generate_solana_wallet();
+
+                                set_wallet_status.set(WalletStatus::Unlocked);
+                                set_generated_wallet.set(Some(wallet));
+                            }
                             >
-                              "Lock wallet"
+                              "Create Solana Devnet Wallet"
                         </button>
                     </div>
                     <div class="panel">
-                        <p class="panel-label">"Active account"</p>
-                        <p class="panel-value">"None"</p>
+                        <p class="panel-label">"Solana public address"</p>
+                        <p class="panel-value address-value">
+                            {move || {
+                                generated_wallet.with(|wallet| {
+                                    wallet
+                                        .as_ref()
+                                        .map(|wallet| wallet.public_address().as_str().to_string())
+                                        .unwrap_or_else(|| "No address generated".to_string())
+                                })
+                            }}
+                        </p>
                     </div>
                     <div class="panel">
                         <p class="panel-label">"Total balance"</p>
@@ -353,27 +395,27 @@ fn App() -> impl IntoView {
                                 <div class="chain-icon">"E"</div>
                                 <div>
                                     <p class="chain-name">"Ethereum"</p>
-                                    <p class="chain-description">"First learning target: Sepolia account and balance flow."</p>
+                                    <p class="chain-description">"Kept in the model layer, but not active in the current wallet flow."</p>
                                 </div>
-                                <span class="status">"Next"</span>
+                                <span class="status">"Paused"</span>
                             </div>
 
                             <div class="chain-row">
                                 <div class="chain-icon">"S"</div>
                                 <div>
                                     <p class="chain-name">"Solana"</p>
-                                    <p class="chain-description">"Separate key type and transaction model for a later milestone."</p>
+                                    <p class="chain-description">"Current learning target: Devnet wallet generation in memory."</p>
                                 </div>
-                                <span class="status">"Later"</span>
+                                <span class="status">"Active"</span>
                             </div>
 
                             <div class="chain-row">
                                 <div class="chain-icon">"B"</div>
                                 <div>
                                     <p class="chain-name">"Bitcoin"</p>
-                                    <p class="chain-description">"UTXO-based wallet design after account-based chains are clear."</p>
+                                    <p class="chain-description">"Kept for architecture practice, but not active in the current wallet flow."</p>
                                 </div>
-                                <span class="status">"Later"</span>
+                                <span class="status">"Paused"</span>
                             </div>
                         </div>
                     </div>
@@ -384,14 +426,14 @@ fn App() -> impl IntoView {
                         </div>
 
                         <ul class="learning-list">
-                            <li>"Define wallet status types."</li>
-                            <li>"Model Ethereum testnet networks."</li>
-                            <li>"Generate wallet data in memory only."</li>
-                            <li>"Add encrypted storage after the core model is reviewed."</li>
+                            <li>"Keep the generated Solana secret key in memory only."</li>
+                            <li>"Display only the public address."</li>
+                            <li>"Add Devnet balance lookup after UI review."</li>
+                            <li>"Add encrypted storage only after the secret lifecycle is tested."</li>
                         </ul>
 
                         <div class="empty-state">
-                            "No secrets are generated, stored, logged, or transmitted by this frontend shell."
+                            "Raw wallet secrets are never displayed, stored, logged, or transmitted by this UI."
                         </div>
                     </aside>
                 </section>
