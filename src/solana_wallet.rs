@@ -1,3 +1,5 @@
+use ed25519_dalek::SigningKey;
+use rand_core::OsRng;
 use std::fmt;
 
 use crate::address::Address;
@@ -19,6 +21,45 @@ impl SolanaSecretKey {
 
     pub fn as_bytes(&self) -> &[u8] {
         self.secret.as_bytes()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct GeneratedSolanaWallet {
+    public_address: SolanaPublicAddress,
+    secret_key: SolanaSecretKey,
+}
+
+impl GeneratedSolanaWallet {
+    pub fn public_address(&self) -> &SolanaPublicAddress {
+        &self.public_address
+    }
+
+    pub fn secret_key(&self) -> &SolanaSecretKey {
+        &self.secret_key
+    }
+}
+
+impl fmt::Debug for GeneratedSolanaWallet {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("GeneratedSolanaWallet")
+            .field("public_address", &self.public_address)
+            .field("secret_key", &"<redacted>")
+            .finish()
+    }
+}
+pub fn generate_solana_wallet() -> GeneratedSolanaWallet {
+    let mut rng = OsRng;
+    let signing_key = SigningKey::generate(&mut rng);
+    let verifying_key = signing_key.verifying_key();
+
+    let public_address = bs58::encode(verifying_key.as_bytes()).into_string();
+    let secret_key = signing_key.to_bytes().to_vec();
+
+    GeneratedSolanaWallet {
+        public_address: SolanaPublicAddress::new(Address::new(public_address)),
+        secret_key: SolanaSecretKey::new(SecretBytes::new(secret_key)),
     }
 }
 
@@ -90,5 +131,41 @@ mod tests {
         let debug_output = format!("{address:?}");
 
         assert!(debug_output.contains("11111111111111111111111111111111"));
+    }
+
+    #[test]
+    fn generated_solana_wallet_has_public_address() {
+        let wallet = generate_solana_wallet();
+
+        assert!(!wallet.public_address().as_str().is_empty());
+    }
+
+    #[test]
+    fn generated_solana_wallet_has_32_byte_secret_key() {
+        let wallet = generate_solana_wallet();
+
+        assert_eq!(wallet.secret_key().len(), 32);
+    }
+
+    #[test]
+    fn generated_solana_wallet_public_address_is_valid_for_solana_adapter() {
+        use crate::chain_adapter::{ChainAdapter, SolanaAdapter};
+
+        let wallet = generate_solana_wallet();
+        let adapter = SolanaAdapter;
+        let address = Address::new(wallet.public_address().as_str().to_string());
+
+        assert!(adapter.is_valid_address(&address));
+    }
+
+    #[test]
+    fn generated_solana_wallet_debug_output_redacts_secret() {
+        let wallet = generate_solana_wallet();
+        let debug_output = format!("{wallet:?}");
+
+        assert!(debug_output.contains("GeneratedSolanaWallet"));
+        assert!(debug_output.contains("public_address"));
+        assert!(debug_output.contains("redacted"));
+        assert!(!debug_output.contains("secret_key: SolanaSecretKey"));
     }
 }
