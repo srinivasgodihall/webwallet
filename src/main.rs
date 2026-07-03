@@ -11,10 +11,13 @@ mod solana_wallet;
 mod wallet;
 mod wallet_model;
 
+use crate::solana_balance::SolanaBalance;
+use crate::solana_rpc::fetch_solana_devnet_balance;
 use crate::solana_wallet::{GeneratedSolanaWallet, generate_solana_wallet};
 use crate::wallet::WalletStatus;
 use leptos::mount::mount_to_body;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 
 fn main() {
     mount_to_body(App);
@@ -24,6 +27,9 @@ fn main() {
 fn App() -> impl IntoView {
     let (wallet_status, set_wallet_status) = signal(WalletStatus::NoWallet);
     let (generated_wallet, set_generated_wallet) = signal::<Option<GeneratedSolanaWallet>>(None);
+    let (balance, set_balance) = signal::<Option<SolanaBalance>>(None);
+    let (balance_error, set_balance_error) = signal::<Option<String>>(None);
+    let (is_fetching_balance, set_is_fetching_balance) = signal(false);
 
     view! {
         <style>
@@ -213,6 +219,21 @@ fn App() -> impl IntoView {
                 background: #185a38;
             }
 
+            .secondary-action {
+                margin-top: 14px;
+                border: 1px solid #b9dbc3;
+                border-radius: 8px;
+                padding: 10px 12px;
+                background: #ffffff;
+                color: #245438;
+                cursor: pointer;
+                font-weight: 800;
+            }
+
+            .secondary-action:hover {
+                background: #eaf8ee;
+            }
+
             .workspace {
                 display: grid;
                 grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
@@ -361,6 +382,8 @@ fn App() -> impl IntoView {
 
                                 set_wallet_status.set(WalletStatus::Unlocked);
                                 set_generated_wallet.set(Some(wallet));
+                                set_balance.set(None);
+                                set_balance_error.set(None);
                             }
                             >
                               "Create Solana Devnet Wallet"
@@ -381,7 +404,56 @@ fn App() -> impl IntoView {
                     </div>
                     <div class="panel">
                         <p class="panel-label">"Total balance"</p>
-                        <p class="panel-value">"--"</p>
+                        <p class="panel-value">
+                            {move || {
+                                if is_fetching_balance.get() {
+                                    "Loading...".to_string()
+                                } else {
+                                    balance
+                                        .get()
+                                        .map(|balance| format!("{} SOL", balance.sol()))
+                                        .unwrap_or_else(|| "--".to_string())
+                                }
+                            }}
+                        </p>
+                        <button
+                            class="secondary-action"
+                            type="button"
+                            on:click=move |_| {
+                                let Some(public_address) = generated_wallet.with(|wallet| {
+                                    wallet
+                                        .as_ref()
+                                        .map(|wallet| wallet.public_address().clone())
+                                }) else {
+                                    set_balance_error
+                                        .set(Some("Create a Solana wallet first".to_string()));
+                                    return;
+                                };
+
+                                set_is_fetching_balance.set(true);
+                                set_balance_error.set(None);
+
+                                spawn_local(async move {
+                                    match fetch_solana_devnet_balance(&public_address).await {
+                                        Ok(next_balance) => {
+                                            set_balance.set(Some(next_balance));
+                                            set_balance_error.set(None);
+                                        }
+                                        Err(error) => {
+                                            set_balance.set(None);
+                                            set_balance_error.set(Some(error.message().to_string()));
+                                        }
+                                    }
+
+                                    set_is_fetching_balance.set(false);
+                                });
+                            }
+                            >
+                            "Refresh Balance"
+                        </button>
+                        <p class="muted">
+                            {move || balance_error.get().unwrap_or_default()}
+                        </p>
                     </div>
                 </section>
 

@@ -45,6 +45,13 @@ pub async fn fetch_solana_devnet_balance(
     parse_get_balance_response(&response).ok_or(SolanaRpcError::MissingBalance)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn fetch_solana_devnet_balance(
+    _address: &SolanaPublicAddress,
+) -> Result<SolanaBalance, SolanaRpcError> {
+    Err(SolanaRpcError::NetworkRequestFailed)
+}
+
 pub fn build_get_balance_request(address: &SolanaPublicAddress) -> Value {
     json!({
         "jsonrpc": "2.0",
