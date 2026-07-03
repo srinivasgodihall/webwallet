@@ -11,3 +11,6 @@ getrandom = { version = "0.2", features = ["js"] }
 bs58 = "0.5"
 serde_json = "1"
 gloo-net = "0.6"
+gloo-timers = { version = "0.3", features = ["futures"] }
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Clipboard", "Navigator", "Window"] }

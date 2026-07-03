@@ -159,13 +159,29 @@ mod tests {
     }
 
     #[test]
-    fn generated_solana_wallet_debug_output_redacts_secret() {
+    fn generated_solana_wallet_debug_output_does_not_expose_secret_bytes() {
         let wallet = generate_solana_wallet();
         let debug_output = format!("{wallet:?}");
 
+        assert!(!debug_output.contains("private"));
         assert!(debug_output.contains("GeneratedSolanaWallet"));
         assert!(debug_output.contains("public_address"));
         assert!(debug_output.contains("redacted"));
         assert!(!debug_output.contains("secret_key: SolanaSecretKey"));
+    }
+
+    #[test]
+    fn solana_secret_key_exposes_length_without_debugging_bytes() {
+        let secret = SolanaSecretKey::new(SecretBytes::new(vec![9, 8, 7, 6]));
+
+        assert_eq!(secret.len(), 4);
+
+        let debug_output = format!("{secret:?}");
+
+        assert!(!debug_output.contains("9"));
+        assert!(!debug_output.contains("8"));
+        assert!(!debug_output.contains("7"));
+        assert!(!debug_output.contains("6"));
+        assert!(debug_output.contains("redacted"));
     }
 }
