@@ -5,6 +5,7 @@ mod chain;
 mod chain_adapter;
 mod network;
 mod secret;
+mod solana_balance;
 mod solana_wallet;
 mod wallet;
 mod wallet_model;
