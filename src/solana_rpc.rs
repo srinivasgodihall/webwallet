@@ -2,6 +2,49 @@ use crate::solana_balance::SolanaBalance;
 use crate::solana_wallet::SolanaPublicAddress;
 use serde_json::{Value, json};
 
+use crate::network::Network;
+#[cfg(target_arch = "wasm32")]
+use gloo_net::http::Request;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SolanaRpcError {
+    RequestBuildFailed,
+    NetworkRequestFailed,
+    InvalidJsonResponse,
+    MissingBalance,
+}
+
+impl SolanaRpcError {
+    pub fn message(self) -> &'static str {
+        match self {
+            SolanaRpcError::RequestBuildFailed => "Could not build Solana RPC request",
+            SolanaRpcError::NetworkRequestFailed => "Solana RPC network request failed",
+            SolanaRpcError::InvalidJsonResponse => "Solana RPC returned invalid JSON",
+            SolanaRpcError::MissingBalance => "Solana RPC response did not include a balance",
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub async fn fetch_solana_devnet_balance(
+    address: &SolanaPublicAddress,
+) -> Result<SolanaBalance, SolanaRpcError> {
+    let request_body = build_get_balance_request(address);
+
+    let response = Request::post(Network::SolanaDevnet.rpc_url())
+        .header("content-type", "application/json")
+        .json(&request_body)
+        .map_err(|_| SolanaRpcError::RequestBuildFailed)?
+        .send()
+        .await
+        .map_err(|_| SolanaRpcError::NetworkRequestFailed)?
+        .json::<Value>()
+        .await
+        .map_err(|_| SolanaRpcError::InvalidJsonResponse)?;
+
+    parse_get_balance_response(&response).ok_or(SolanaRpcError::MissingBalance)
+}
+
 pub fn build_get_balance_request(address: &SolanaPublicAddress) -> Value {
     json!({
         "jsonrpc": "2.0",
@@ -79,5 +122,25 @@ mod tests {
         });
 
         assert_eq!(parse_get_balance_response(&response), None);
+    }
+
+    #[test]
+    fn solana_rpc_errors_have_clear_messages() {
+        assert_eq!(
+            SolanaRpcError::RequestBuildFailed.message(),
+            "Could not build Solana RPC request"
+        );
+        assert_eq!(
+            SolanaRpcError::NetworkRequestFailed.message(),
+            "Solana RPC network request failed"
+        );
+        assert_eq!(
+            SolanaRpcError::InvalidJsonResponse.message(),
+            "Solana RPC returned invalid JSON"
+        );
+        assert_eq!(
+            SolanaRpcError::MissingBalance.message(),
+            "Solana RPC response did not include a balance"
+        );
     }
 }
