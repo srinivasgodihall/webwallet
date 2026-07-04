@@ -43,6 +43,15 @@ impl WalletSession {
     pub fn selected_wallet_index(&self) -> Option<usize> {
         self.selected_wallet_index
     }
+
+    pub fn add_wallet(&mut self, wallet: NameWallet) {
+        self.wallet.push(wallet);
+
+        if self.selected_wallet_index.is_none() {
+            self.selected_wallet_index = Some(0);
+        }
+
+    }
 }
 
 impl fmt::Debug for NameWallet {
@@ -88,11 +97,22 @@ mod tests {
     }
 
     #[test]
-fn new_empty_session_has_no_wallets_and_no_selection() {
-    let session = WalletSession::new_empty();
+    fn new_empty_session_has_no_wallets_and_no_selection() {
+        let session = WalletSession::new_empty();
 
-    assert_eq!(session.wallet_count(), 0);
-    assert_eq!(session.selected_wallet_index(), None);
-}
+        assert_eq!(session.wallet_count(), 0);
+        assert_eq!(session.selected_wallet_index(), None);
+    }
+
+    #[test]
+    fn adding_first_wallet_selects_it() {
+        let mut session = WalletSession::new_empty();
+        let wallet = NameWallet::new("Main Wallet".to_string(), generate_solana_wallet());
+
+        session.add_wallet(wallet);
+
+        assert_eq!(session.wallet_count(), 1);
+        assert_eq!(session.selected_wallet_index(), Some(0));
+    }
 
 }
