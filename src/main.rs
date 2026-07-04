@@ -1,15 +1,8 @@
-mod account;
-mod address;
-mod app_config;
-mod chain;
-mod chain_adapter;
-mod network;
-mod secret;
-mod solana_balance;
-mod solana_rpc;
-mod solana_wallet;
-mod wallet;
-mod wallet_model;
+mod account; mod address; mod app_config; mod chain; mod chain_adapter;
+mod network; mod secret; mod solana_balance; mod solana_rpc;
+mod solana_wallet; mod wallet; mod wallet_model; mod wallet_session;
+
+
 
 use crate::solana_balance::SolanaBalance;
 use crate::solana_rpc::fetch_solana_devnet_balance;

@@ -19,7 +19,7 @@ impl SolanaSecretKey {
         self.secret.len()
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn expose_secret_bytes_for_signing_only(&self) -> &[u8] {
         self.secret.as_bytes()
     }
 }
@@ -109,10 +109,10 @@ mod tests {
     }
 
     #[test]
-    fn solana_secret_key_exposes_bytes_for_internal_use() {
+    fn raw_secret_byte_access_is_temporary_and_should_not_be_used_by_ui(){
         let secret = SolanaSecretKey::new(SecretBytes::new(vec![1, 2, 3, 4]));
 
-        assert_eq!(secret.as_bytes(), &[1, 2, 3, 4]);
+        assert_eq!(secret.expose_secret_bytes_for_signing_only(), &[1, 2, 3, 4]);
     }
 
     #[test]
@@ -183,5 +183,14 @@ mod tests {
         assert!(!debug_output.contains("7"));
         assert!(!debug_output.contains("6"));
         assert!(debug_output.contains("redacted"));
+    }
+
+    #[test]
+    fn generated_wallet_exposes_public_address_for_display() {
+        let wallet = generate_solana_wallet();
+        let public_address = wallet.public_address().as_str();
+
+        assert!(!public_address.is_empty());
+        assert!(!public_address.chars().any(char::is_whitespace));
     }
 }
