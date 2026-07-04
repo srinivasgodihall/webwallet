@@ -7,6 +7,13 @@ pub struct NameWallet{
     wallet: GeneratedSolanaWallet,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalletSession {
+    wallet: Vec<NameWallet>,
+    selected_wallet_index: Option<usize>,
+}
+
+
 impl NameWallet {
     pub fn new(name: String, wallet: GeneratedSolanaWallet) -> Self {
         Self {name, wallet}
@@ -18,6 +25,23 @@ impl NameWallet {
 
     pub fn public_address(&self) -> &SolanaPublicAddress {
         self.wallet.public_address()
+    }
+}
+
+impl WalletSession {
+    pub fn new_empty()-> Self {
+        Self {
+            wallet: Vec::new(),
+            selected_wallet_index: None,
+        }
+    }
+
+    pub fn wallet_count(&self) -> usize {
+        self.wallet.len()
+    }
+
+    pub fn selected_wallet_index(&self) -> Option<usize> {
+        self.selected_wallet_index
     }
 }
 
@@ -62,5 +86,13 @@ mod tests {
         assert!(!debug_output.contains("mnemonic"));
         assert!(!debug_output.contains("password"));
     }
+
+    #[test]
+fn new_empty_session_has_no_wallets_and_no_selection() {
+    let session = WalletSession::new_empty();
+
+    assert_eq!(session.wallet_count(), 0);
+    assert_eq!(session.selected_wallet_index(), None);
+}
 
 }
