@@ -2,19 +2,19 @@ use crate::solana_wallet::{GeneratedSolanaWallet, SolanaPublicAddress};
 use std::fmt;
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct NameWallet{
+pub struct NamedWallet{
     name:String,
     wallet: GeneratedSolanaWallet,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletSession {
-    wallet: Vec<NameWallet>,
+    wallet: Vec<NamedWallet>,
     selected_wallet_index: Option<usize>,
 }
 
 
-impl NameWallet {
+impl NamedWallet {
     pub fn new(name: String, wallet: GeneratedSolanaWallet) -> Self {
         Self {name, wallet}
     }
@@ -44,7 +44,7 @@ impl WalletSession {
         self.selected_wallet_index
     }
 
-    pub fn add_wallet(&mut self, wallet: NameWallet) {
+    pub fn add_wallet(&mut self, wallet: NamedWallet) {
         self.wallet.push(wallet);
 
         if self.selected_wallet_index.is_none() {
@@ -52,12 +52,26 @@ impl WalletSession {
         }
 
     }
+
+    pub fn select_wallet(&mut self, index: usize) -> bool {
+        if index < self.wallet.len() {
+            self.selected_wallet_index = Some(index);
+            true
+        }else{
+            false
+        }
+    }
+
+    pub fn selected_wallet(&self) -> Option<&NamedWallet> {
+        self.selected_wallet_index
+            .and_then(|index| self.wallet.get(index))
+    }
 }
 
-impl fmt::Debug for NameWallet {
+impl fmt::Debug for NamedWallet {
     fn fmt (&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("NameWallet")
+            .debug_struct("NamedWallet")
             .field("name", &self.name)
             .field("public_address", self.wallet.public_address())
             .finish()
@@ -71,23 +85,23 @@ mod tests {
 
     #[test]
     fn named_wallet_exposed_name() {
-        let wallet = NameWallet::new("Main Wallet".to_string(), generate_solana_wallet());
+        let wallet = NamedWallet::new("Main Wallet".to_string(), generate_solana_wallet());
         assert_eq!(wallet.name(), "Main Wallet");
      }
 
      #[test]
     fn named_wallet_exposes_public_address_for_display() {
-        let wallet = NameWallet::new("Main wallet".to_string(), generate_solana_wallet());
+        let wallet = NamedWallet::new("Main wallet".to_string(), generate_solana_wallet());
 
         assert!(!wallet.public_address().as_str().is_empty());
     }
 
     #[test]
     fn named_wallet_debug_output_does_not_expose_secret_data() {
-        let wallet = NameWallet::new("Main Wallet".to_string(), generate_solana_wallet());
+        let wallet = NamedWallet::new("Main Wallet".to_string(), generate_solana_wallet());
         let debug_output = format!("{wallet:?}");
 
-        assert!(debug_output.contains("NameWallet"));
+        assert!(debug_output.contains("NamedWallet"));
         assert!(debug_output.contains("Main Wallet"));
         assert!(debug_output.contains("public_address"));
         assert!(!debug_output.contains("secret"));
@@ -107,7 +121,7 @@ mod tests {
     #[test]
     fn adding_first_wallet_selects_it() {
         let mut session = WalletSession::new_empty();
-        let wallet = NameWallet::new("Main Wallet".to_string(), generate_solana_wallet());
+        let wallet = NamedWallet::new("Main Wallet".to_string(), generate_solana_wallet());
 
         session.add_wallet(wallet);
 
@@ -119,12 +133,12 @@ mod tests {
     fn adding_second_wallet_keeps_existing_selection() {
         let mut session = WalletSession::new_empty();
 
-        session.add_wallet(NameWallet::new(
+        session.add_wallet(NamedWallet::new(
             "Main Wallet".to_string(),
             generate_solana_wallet(),
         ));
 
-        session.add_wallet(NameWallet::new(
+        session.add_wallet(NamedWallet::new(
             "Savings Wallet".to_string(),
             generate_solana_wallet(),
         ));
@@ -132,5 +146,71 @@ mod tests {
         assert_eq!(session.wallet_count(), 2);
         assert_eq!(session.selected_wallet_index(), Some(0));
     }
+
+    #[test]
+    fn selecting_existing_wallet_changes_selection() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        session.add_wallet(NamedWallet::new(
+            "Savings Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        let selected = session.select_wallet(1);
+
+        assert!(selected);
+        assert_eq!(session.selected_wallet_index(), Some(1));
+    }
+
+    #[test]
+    fn selecting_invalid_wallet_keeps_existing_selection() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        let selected = session.select_wallet(99);
+
+        assert!(!selected);
+        assert_eq!(session.selected_wallet_index(), Some(0));
+    }
+
+    #[test]
+    fn selected_wallet_returns_current_wallet() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        session.add_wallet(NamedWallet::new(
+            "Savings Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        session.select_wallet(1);
+
+        let selected_wallet  = session
+            .selected_wallet()
+            .expect("wallet should be selected");
+
+        assert_eq!(selected_wallet.name(), "Savings Wallet");        
+
+    }
+    #[test]
+    fn selected_wallet_returns_none_for_empty_session() {
+        let session = WalletSession::new_empty();
+
+        assert!(session.selected_wallet().is_none());
+    }
+
 
 }
