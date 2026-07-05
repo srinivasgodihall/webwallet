@@ -115,4 +115,22 @@ mod tests {
         assert_eq!(session.selected_wallet_index(), Some(0));
     }
 
+    #[test]
+    fn adding_second_wallet_keeps_existing_selection() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NameWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        session.add_wallet(NameWallet::new(
+            "Savings Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        assert_eq!(session.wallet_count(), 2);
+        assert_eq!(session.selected_wallet_index(), Some(0));
+    }
+
 }
