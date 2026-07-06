@@ -13,6 +13,11 @@ pub struct WalletSession {
     selected_wallet_index: Option<usize>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalletSessionError {
+    WalletNotFound,
+}
+
 
 impl NamedWallet {
     pub fn new(name: String, wallet: GeneratedSolanaWallet) -> Self {
@@ -53,18 +58,26 @@ impl WalletSession {
 
     }
 
-    pub fn select_wallet(&mut self, index: usize) -> bool {
+    pub fn select_wallet(&mut self, index: usize) -> Result<(), WalletSessionError> {
         if index < self.wallet.len() {
             self.selected_wallet_index = Some(index);
-            true
+            Ok(())
         }else{
-            false
+            Err(WalletSessionError::WalletNotFound)
         }
     }
 
     pub fn selected_wallet(&self) -> Option<&NamedWallet> {
         self.selected_wallet_index
             .and_then(|index| self.wallet.get(index))
+    }
+
+    pub fn wallets(&self) -> &[NamedWallet] {
+        &self.wallet
+    }
+
+    pub fn wallet_at(&self, index: usize) -> Option<&NamedWallet> {
+        self.wallets().get(index)
     }
 }
 
@@ -75,6 +88,14 @@ impl fmt::Debug for NamedWallet {
             .field("name", &self.name)
             .field("public_address", self.wallet.public_address())
             .finish()
+    }
+}
+
+impl WalletSessionError {
+    pub fn message(self) -> &'static str {
+        match self {
+            WalletSessionError::WalletNotFound => "Wallet not found",
+        }
     }
 }
 
@@ -161,9 +182,9 @@ mod tests {
             generate_solana_wallet(),
         ));
 
-        let selected = session.select_wallet(1);
+        let selected =session.select_wallet(1);
 
-        assert!(selected);
+        assert_eq!(selected, Ok(()));
         assert_eq!(session.selected_wallet_index(), Some(1));
     }
 
@@ -178,7 +199,7 @@ mod tests {
 
         let selected = session.select_wallet(99);
 
-        assert!(!selected);
+        assert_eq!(selected, Err(WalletSessionError::WalletNotFound));
         assert_eq!(session.selected_wallet_index(), Some(0));
     }
 
@@ -196,7 +217,7 @@ mod tests {
             generate_solana_wallet(),
         ));
 
-        session.select_wallet(1);
+        session.select_wallet(1).expect("wallet should exist");
 
         let selected_wallet  = session
             .selected_wallet()
@@ -212,5 +233,40 @@ mod tests {
         assert!(session.selected_wallet().is_none());
     }
 
+    #[test]
+    fn wallet_not_found_error_has_clear_message() {
+        assert_eq!(
+            WalletSessionError::WalletNotFound.message(),
+            "Wallet not found"
+        );
+    }
+
+    #[test]
+    fn wallets_accessor_returns_named_wallets() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+        "Main Wallet".to_string(),
+        generate_solana_wallet(),
+        ));
+
+        let wallets = session.wallets();
+
+        assert_eq!(wallets.len(), 1);
+        assert_eq!(wallets[0].name(), "Main Wallet");
+    }
+
+    #[test]
+    fn wallet_at_returns_wallet_for_existing_index() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        let wallet = session.wallet_at(0).expect("wallet should exist");
+        assert_eq!(wallet.name(), "Main Wallet");
+    }
 
 }
