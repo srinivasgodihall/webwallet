@@ -62,6 +62,18 @@ pub fn build_get_balance_request(address: &SolanaPublicAddress) -> Value {
     })
 }
 
+pub fn build_request_airdrop_request(
+    address: &SolanaPublicAddress,
+    lamports: u64,
+) -> Value {
+    json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "requestAirdrop",
+        "params": [address.as_str(), lamports],
+    })
+}
+
 pub fn parse_get_balance_response(response: &Value) -> Option<SolanaBalance> {
     let lamports = response.get("result")?.get("value")?.as_u64()?;
 
@@ -150,5 +162,19 @@ mod tests {
             SolanaRpcError::MissingBalance.message(),
             "Solana RPC response did not include a balance"
         );
+    }
+
+    #[test]
+    fn builds_request_airdrop_request_json() {
+        let address =
+            SolanaPublicAddress::new(Address::new("11111111111111111111111111111111".to_string()));
+
+        let request = build_request_airdrop_request(&address, 1_000_000_000);
+
+        assert_eq!(request["jsonrpc"], "2.0");
+        assert_eq!(request["id"], 1);
+        assert_eq!(request["method"], "requestAirdrop");
+        assert_eq!(request["params"][0], address.as_str());
+        assert_eq!(request["params"][1], 1_000_000_000u64);
     }
 }
