@@ -195,4 +195,14 @@ mod tests {
 
         assert_eq!(signature, "test-signature");
     }
+
+    #[test]
+    fn returns_none_when_airdrop_signature_is_missing() {
+        let response = json!({
+            "jsonrpc": "2.0",
+            "id": 1
+        });
+
+        assert_eq!(parse_request_airdrop_response(&response), None);
+    }
 }
