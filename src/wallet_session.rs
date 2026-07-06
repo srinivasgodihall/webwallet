@@ -79,6 +79,11 @@ impl WalletSession {
     pub fn wallet_at(&self, index: usize) -> Option<&NamedWallet> {
         self.wallets().get(index)
     }
+
+    pub fn selected_public_address(&self) -> Option<&SolanaPublicAddress> {
+    self.selected_wallet()
+        .map(|wallet| wallet.public_address())
+    }
 }
 
 impl fmt::Debug for NamedWallet {
@@ -274,6 +279,22 @@ mod tests {
         let session = WalletSession::new_empty();
 
         assert!(session.wallet_at(99).is_none());
+    }
+
+    #[test]
+    fn selected_public_address_returns_address_for_selected_wallet() {
+        let mut session = WalletSession::new_empty();
+
+        session.add_wallet(NamedWallet::new(
+            "Main Wallet".to_string(),
+            generate_solana_wallet(),
+        ));
+
+        let address = session
+            .selected_public_address()
+            .expect("selected address should exist");
+
+        assert!(!address.as_str().is_empty());
     }
 
 }
