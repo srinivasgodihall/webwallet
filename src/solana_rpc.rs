@@ -13,6 +13,8 @@ pub enum SolanaRpcError {
     NetworkRequestFailed,
     InvalidJsonResponse,
     MissingBalance,
+    MissingAirdropSignature,
+
 }
 
 impl SolanaRpcError {
@@ -22,6 +24,7 @@ impl SolanaRpcError {
             SolanaRpcError::NetworkRequestFailed => "Solana RPC network request failed",
             SolanaRpcError::InvalidJsonResponse => "Solana RPC returned invalid JSON",
             SolanaRpcError::MissingBalance => "Solana RPC response did not include a balance",
+            SolanaRpcError::MissingAirdropSignature => {"Solana RPC response did not include an airdrop signature"}
         }
     }
 }
@@ -204,5 +207,13 @@ mod tests {
         });
 
         assert_eq!(parse_request_airdrop_response(&response), None);
+    }
+
+    #[test]
+    fn missing_airdrop_signature_error_has_clear_message() {
+        assert_eq!(
+            SolanaRpcError::MissingAirdropSignature.message(),
+            "Solana RPC response did not include an airdrop signature"
+        );
     }
 }
