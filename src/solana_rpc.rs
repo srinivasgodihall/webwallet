@@ -56,6 +56,37 @@ pub async fn fetch_solana_devnet_balance(
     Err(SolanaRpcError::NetworkRequestFailed)
 }
 
+
+#[cfg(target_arch = "wasm32")]
+pub async fn request_solana_devnet_airdrop(
+    address: &SolanaPublicAddress,
+    lamports: u64,
+) -> Result<String, SolanaRpcError> {
+    let request_body = build_request_airdrop_request(address, lamports);
+
+    let response = Request::post(Network::SolanaDevnet.rpc_url())
+        .header("content-type", "application/json")
+        .json(&request_body)
+        .map_err(|_| SolanaRpcError::RequestBuildFailed)?
+        .send()
+        .await
+        .map_err(|_| SolanaRpcError::NetworkRequestFailed)?
+        .json::<Value>()
+        .await
+        .map_err(|_| SolanaRpcError::InvalidJsonResponse)?;
+
+    parse_request_airdrop_response(&response)
+        .ok_or(SolanaRpcError::MissingAirdropSignature)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn request_solana_devnet_airdrop(
+    _address: &SolanaPublicAddress,
+    _lamports: u64,
+) -> Result<String, SolanaRpcError> {
+    Err(SolanaRpcError::NetworkRequestFailed)
+}
+
 pub fn build_get_balance_request(address: &SolanaPublicAddress) -> Value {
     json!({
         "jsonrpc": "2.0",
