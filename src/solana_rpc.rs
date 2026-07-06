@@ -80,6 +80,10 @@ pub fn parse_get_balance_response(response: &Value) -> Option<SolanaBalance> {
     Some(SolanaBalance::new(lamports))
 }
 
+pub fn parse_request_airdrop_response(response: &Value) -> Option<String> {
+    response.get("result")?.as_str().map(|signature| signature.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,5 +180,19 @@ mod tests {
         assert_eq!(request["method"], "requestAirdrop");
         assert_eq!(request["params"][0], address.as_str());
         assert_eq!(request["params"][1], 1_000_000_000u64);
+    }
+
+    #[test]
+    fn parses_request_airdrop_response_signature() {
+        let response = json!({
+            "jsonrpc": "2.0",
+            "result": "test-signature",
+            "id": 1
+        });
+
+        let signature =
+            parse_request_airdrop_response(&response).expect("response should include signature");
+
+        assert_eq!(signature, "test-signature");
     }
 }
