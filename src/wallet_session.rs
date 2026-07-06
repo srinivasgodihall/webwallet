@@ -269,4 +269,11 @@ mod tests {
         assert_eq!(wallet.name(), "Main Wallet");
     }
 
+    #[test]
+    fn wallet_at_returns_none_for_invalid_index() {
+        let session = WalletSession::new_empty();
+
+        assert!(session.wallet_at(99).is_none());
+    }
+
 }
