@@ -2,6 +2,7 @@ use crate::solana_balance::SolanaBalance;
 use crate::solana_wallet::SolanaPublicAddress;
 use serde_json::{Value, json};
 
+#[cfg(target_arch = "wasm32")]
 use crate::network::Network;
 #[cfg(target_arch = "wasm32")]
 use gloo_net::http::Request;

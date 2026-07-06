@@ -1,13 +1,22 @@
-mod account; mod address; mod app_config; mod chain; mod chain_adapter;
-mod network; mod secret; mod solana_balance; mod solana_rpc;
-mod solana_wallet; mod wallet; mod wallet_model; mod wallet_session;
-
-
+mod account;
+mod address;
+mod app_config;
+mod chain;
+mod chain_adapter;
+mod network;
+mod secret;
+mod solana_balance;
+mod solana_rpc;
+mod solana_wallet;
+mod wallet;
+mod wallet_model;
+mod wallet_session;
 
 use crate::solana_balance::SolanaBalance;
 use crate::solana_rpc::fetch_solana_devnet_balance;
-use crate::solana_wallet::{GeneratedSolanaWallet, generate_solana_wallet};
+use crate::solana_wallet::generate_solana_wallet;
 use crate::wallet::WalletStatus;
+use crate::wallet_session::{NamedWallet, WalletSession};
 use gloo_timers::future::TimeoutFuture;
 use leptos::mount::mount_to_body;
 use leptos::prelude::*;
@@ -44,17 +53,10 @@ fn shorten_address(address: &str) -> String {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
-struct SessionWallet {
-    name: String,
-    wallet: GeneratedSolanaWallet,
-}
-
 #[component]
 fn App() -> impl IntoView {
     let (wallet_status, set_wallet_status) = signal(WalletStatus::NoWallet);
-    let (wallets, set_wallets) = signal::<Vec<SessionWallet>>(Vec::new());
-    let (selected_wallet_index, set_selected_wallet_index) = signal::<Option<usize>>(None);
+    let (wallet_session, set_wallet_session) = signal(WalletSession::new_empty());
     let (balance, set_balance) = signal::<Option<SolanaBalance>>(None);
     let (balance_error, set_balance_error) = signal::<Option<String>>(None);
     let (is_fetching_balance, set_is_fetching_balance) = signal(false);
@@ -1079,16 +1081,12 @@ fn App() -> impl IntoView {
                                         <p class="wallet-label">"Active wallet"</p>
                                         <h2>
                                             {move || {
-                                                selected_wallet_index
-                                                    .get()
-                                                    .and_then(|index| {
-                                                        wallets.with(|wallets| {
-                                                            wallets
-                                                                .get(index)
-                                                                .map(|session_wallet| session_wallet.name.clone())
-                                                        })
+                                                wallet_session.with(|session| {
+                                                    session
+                                                        .selected_wallet()
+                                                        .map(|wallet| wallet.name().to_string())
+                                                        .unwrap_or_else(|| "No wallet".to_string())
                                                     })
-                                                    .unwrap_or_else(|| "No wallet".to_string())
                                             }}
                                         </h2>
                                     </div>
@@ -1102,10 +1100,10 @@ fn App() -> impl IntoView {
                                     <div class="balance-block">
                                         <p class="balance-caption">
                                             {move || {
-                                                if selected_wallet_index.get().is_some() {
-                                                        "Solana Devnet balance".to_string()
-                                                    } else {
-                                                        "Create a wallet to begin".to_string()
+                                                if wallet_session.with(|session| session.selected_wallet().is_some()) {
+                                                    "Solana Devnet balance".to_string()
+                                                } else {
+                                                    "Create a wallet to begin".to_string()
                                                 }
                                             }}
                                         </p>
@@ -1141,44 +1139,29 @@ fn App() -> impl IntoView {
                                         <div class="address-capsule">
                                             <p class="address-value">
                                                 {move || {
-                                                    selected_wallet_index
-                                                        .get()
-                                                        .and_then(|index| {
-                                                            wallets.with(|wallets| {
-                                                                wallets.get(index).map(|session_wallet| {
-                                                                    session_wallet
-                                                                        .wallet
-                                                                        .public_address()
-                                                                        .as_str()
-                                                                        .to_string()
-                                                                })
-                                                            })
-                                                        })
-                                                        .unwrap_or_else(|| "No address generated".to_string())
+                                                    wallet_session.with(|session| {
+                                                        session
+                                                            .selected_public_address()
+                                                            .map(|address| address.as_str().to_string())
+                                                            .unwrap_or_else(|| "No address generated".to_string())
+                                                    })
                                                 }}
                                             </p>
                                             <button
                                                 class="copy-address-button"
                                                 type="button"
                                                 disabled=move || {
-                                                    selected_wallet_index.get().is_none()
+                                                    wallet_session
+                                                        .with(|session| session.selected_public_address().is_none())
                                                         || copy_status.get() == "Copying"
                                                 }
                                                 aria-label=move || copy_status.get()
                                                 title=move || copy_status.get()
                                                 on:click=move |_| {
-                                                    let Some(public_address) = selected_wallet_index
-                                                        .get()
-                                                        .and_then(|index| {
-                                                            wallets.with(|wallets| {
-                                                                wallets.get(index).map(|session_wallet| {
-                                                                    session_wallet
-                                                                        .wallet
-                                                                        .public_address()
-                                                                        .as_str()
-                                                                        .to_string()
-                                                                })
-                                                            })
+                                                    let Some(public_address) = wallet_session.with(|session| {
+                                                        session
+                                                            .selected_public_address()
+                                                            .map(|address| address.as_str().to_string())
                                                     }) else {
                                                         set_copy_status.set("No address");
                                                         return;
@@ -1263,7 +1246,8 @@ fn App() -> impl IntoView {
                                             type="button"
                                             on:click=move |_| {
                                                 let wallet = generate_solana_wallet();
-                                                let next_index = wallets.with(|wallets| wallets.len());
+                                                let next_index =
+                                                    wallet_session.with(|session| session.wallet_count());
                                                 let wallet_name = new_wallet_name.with(|name| {
                                                     let trimmed_name = name.trim();
 
@@ -1275,13 +1259,10 @@ fn App() -> impl IntoView {
                                                 });
 
                                                 set_wallet_status.set(WalletStatus::Unlocked);
-                                                set_wallets.update(|wallets| {
-                                                    wallets.push(SessionWallet {
-                                                        name: wallet_name,
-                                                        wallet,
-                                                    });
+                                                set_wallet_session.update(|session| {
+                                                    session.add_wallet(NamedWallet::new(wallet_name, wallet));
+                                                    let _ = session.select_wallet(next_index);
                                                 });
-                                                set_selected_wallet_index.set(Some(next_index));
                                                 set_balance.set(None);
                                                 set_balance_error.set(None);
                                                 set_copy_status.set("Copy");
@@ -1294,16 +1275,10 @@ fn App() -> impl IntoView {
                                             class="secondary-button"
                                             type="button"
                                             on:click=move |_| {
-                                                let Some(public_address) = selected_wallet_index
-                                                    .get()
-                                                    .and_then(|index| {
-                                                        wallets.with(|wallets| {
-                                                            wallets
-                                                                .get(index)
-                                                                .map(|session_wallet| {
-                                                                    session_wallet.wallet.public_address().clone()
-                                                                })
-                                                        })
+                                                let Some(public_address) = wallet_session.with(|session| {
+                                                    session
+                                                        .selected_public_address()
+                                                        .cloned()
                                                 }) else {
                                                     set_balance_error
                                                         .set(Some("Create a Solana wallet first".to_string()));
@@ -1428,13 +1403,20 @@ fn App() -> impl IntoView {
                                     <p>"Session-only wallet switcher."</p>
                                 </div>
                                 <span class="small-pill active">
-                                    {move || format!("{} saved", wallets.with(|wallets| wallets.len()))}
+                                    {move || {
+                                        format!(
+                                            "{} saved",
+                                            wallet_session.with(|session| session.wallet_count()),
+                                        )
+                                    }}
                                 </span>
                             </div>
 
                             <div class="wallet-list">
                                 <Show
-                                    when=move || wallets.with(|wallets| !wallets.is_empty())
+                                    when=move || {
+                                        wallet_session.with(|session| session.wallet_count() > 0)
+                                    }
                                     fallback=move || {
                                         view! {
                                             <div class="wallet-row">
@@ -1451,16 +1433,16 @@ fn App() -> impl IntoView {
                                 >
                                     <For
                                         each=move || {
-                                            wallets.with(|wallets| {
-                                                wallets
+                                            wallet_session.with(|session| {
+                                                session
+                                                    .wallets()
                                                     .iter()
                                                     .enumerate()
-                                                    .map(|(index, session_wallet)| {
+                                                    .map(|(index, wallet)| {
                                                         (
                                                             index,
-                                                            session_wallet.name.clone(),
-                                                            session_wallet
-                                                                .wallet
+                                                            wallet.name().to_string(),
+                                                            wallet
                                                                 .public_address()
                                                                 .as_str()
                                                                 .to_string(),
@@ -1476,7 +1458,9 @@ fn App() -> impl IntoView {
                                             view! {
                                                 <button
                                                     class=move || {
-                                                        if selected_wallet_index.get() == Some(index) {
+                                                        if wallet_session
+                                                            .with(|session| session.selected_wallet_index() == Some(index))
+                                                        {
                                                             "wallet-row wallet-row-button active"
                                                         } else {
                                                             "wallet-row wallet-row-button"
@@ -1484,10 +1468,13 @@ fn App() -> impl IntoView {
                                                     }
                                                     type="button"
                                                     aria-pressed=move || {
-                                                        selected_wallet_index.get() == Some(index)
+                                                        wallet_session
+                                                            .with(|session| session.selected_wallet_index() == Some(index))
                                                     }
                                                     on:click=move |_| {
-                                                        set_selected_wallet_index.set(Some(index));
+                                                        set_wallet_session.update(|session| {
+                                                            let _ = session.select_wallet(index);
+                                                        });
                                                         set_balance.set(None);
                                                         set_balance_error.set(None);
                                                         set_copy_status.set("Copy");

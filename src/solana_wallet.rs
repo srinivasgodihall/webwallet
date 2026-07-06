@@ -109,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_secret_byte_access_is_temporary_and_should_not_be_used_by_ui(){
+    fn raw_secret_byte_access_is_temporary_and_should_not_be_used_by_ui() {
         let secret = SolanaSecretKey::new(SecretBytes::new(vec![1, 2, 3, 4]));
 
         assert_eq!(secret.expose_secret_bytes_for_signing_only(), &[1, 2, 3, 4]);
