@@ -7,6 +7,7 @@ mod network;
 mod secret;
 mod solana_balance;
 mod solana_rpc;
+mod solana_signer;
 mod solana_transaction;
 mod solana_wallet;
 mod wallet;
