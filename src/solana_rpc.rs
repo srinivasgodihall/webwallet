@@ -14,6 +14,7 @@ pub enum SolanaRpcError {
     InvalidJsonResponse,
     MissingBalance,
     MissingAirdropSignature,
+    MissingSendTransactionSignature,
 }
 
 impl SolanaRpcError {
@@ -25,6 +26,9 @@ impl SolanaRpcError {
             SolanaRpcError::MissingBalance => "Solana RPC response did not include a balance",
             SolanaRpcError::MissingAirdropSignature => {
                 "Solana RPC response did not include an airdrop signature"
+            }
+            SolanaRpcError::MissingSendTransactionSignature => {
+                "Solana RPC response did not include a send transaction signature"
             }
         }
     }
@@ -48,6 +52,34 @@ pub async fn fetch_solana_devnet_balance(
         .map_err(|_| SolanaRpcError::InvalidJsonResponse)?;
 
     parse_get_balance_response(&response).ok_or(SolanaRpcError::MissingBalance)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub async fn send_solana_devnet_transaction(
+    encoded_transaction: &str,
+) -> Result<String, SolanaRpcError> {
+    let request_body = build_send_transaction_request(encoded_transaction);
+
+    let response = Request::post(Network::SolanaDevnet.rpc_url())
+        .header("content-type", "application/json")
+        .json(&request_body)
+        .map_err(|_| SolanaRpcError::RequestBuildFailed)?
+        .send()
+        .await
+        .map_err(|_| SolanaRpcError::NetworkRequestFailed)?
+        .json::<Value>()
+        .await
+        .map_err(|_| SolanaRpcError::InvalidJsonResponse)?;
+
+    parse_send_transaction_response(&response)
+        .ok_or(SolanaRpcError::MissingSendTransactionSignature)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn send_solana_devnet_transaction(
+    _encoded_transaction: &str,
+) -> Result<String, SolanaRpcError> {
+    Err(SolanaRpcError::NetworkRequestFailed)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -127,9 +159,11 @@ pub fn build_send_transaction_request(encoded_transaction: &str) -> Value {
 }
 
 pub fn parse_send_transaction_response(response: &Value) -> Option<String> {
-    response.get("result")?.as_str().map(|signature| signature.to_string())
+    response
+        .get("result")?
+        .as_str()
+        .map(|signature| signature.to_string())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -292,5 +326,13 @@ mod tests {
             parse_send_transaction_response(&response).expect("response should include signature");
 
         assert_eq!(signature, "broadcast-signature");
+    }
+
+    #[test]
+    fn missing_send_transaction_signature_error_has_clear_message() {
+        assert_eq!(
+            SolanaRpcError::MissingSendTransactionSignature.message(),
+            "Solana RPC response did not include a send transaction signature"
+        );
     }
 }
