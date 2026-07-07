@@ -126,6 +126,11 @@ pub fn build_send_transaction_request(encoded_transaction: &str) -> Value {
     })
 }
 
+pub fn parse_send_transaction_response(response: &Value) -> Option<String> {
+    response.get("result")?.as_str().map(|signature| signature.to_string())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,5 +278,19 @@ mod tests {
         assert!(!request_text.contains("private"));
         assert!(!request_text.contains("mnemonic"));
         assert!(!request_text.contains("password"));
+    }
+
+    #[test]
+    fn parses_send_transaction_response_signature() {
+        let response = json!({
+            "jsonrpc": "2.0",
+            "result": "broadcast-signature",
+            "id": 1
+        });
+
+        let signature =
+            parse_send_transaction_response(&response).expect("response should include signature");
+
+        assert_eq!(signature, "broadcast-signature");
     }
 }
