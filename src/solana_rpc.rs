@@ -14,7 +14,6 @@ pub enum SolanaRpcError {
     InvalidJsonResponse,
     MissingBalance,
     MissingAirdropSignature,
-
 }
 
 impl SolanaRpcError {
@@ -24,7 +23,9 @@ impl SolanaRpcError {
             SolanaRpcError::NetworkRequestFailed => "Solana RPC network request failed",
             SolanaRpcError::InvalidJsonResponse => "Solana RPC returned invalid JSON",
             SolanaRpcError::MissingBalance => "Solana RPC response did not include a balance",
-            SolanaRpcError::MissingAirdropSignature => {"Solana RPC response did not include an airdrop signature"}
+            SolanaRpcError::MissingAirdropSignature => {
+                "Solana RPC response did not include an airdrop signature"
+            }
         }
     }
 }
@@ -56,7 +57,6 @@ pub async fn fetch_solana_devnet_balance(
     Err(SolanaRpcError::NetworkRequestFailed)
 }
 
-
 #[cfg(target_arch = "wasm32")]
 pub async fn request_solana_devnet_airdrop(
     address: &SolanaPublicAddress,
@@ -75,8 +75,7 @@ pub async fn request_solana_devnet_airdrop(
         .await
         .map_err(|_| SolanaRpcError::InvalidJsonResponse)?;
 
-    parse_request_airdrop_response(&response)
-        .ok_or(SolanaRpcError::MissingAirdropSignature)
+    parse_request_airdrop_response(&response).ok_or(SolanaRpcError::MissingAirdropSignature)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -96,10 +95,7 @@ pub fn build_get_balance_request(address: &SolanaPublicAddress) -> Value {
     })
 }
 
-pub fn build_request_airdrop_request(
-    address: &SolanaPublicAddress,
-    lamports: u64,
-) -> Value {
+pub fn build_request_airdrop_request(address: &SolanaPublicAddress, lamports: u64) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": 1,
@@ -115,7 +111,19 @@ pub fn parse_get_balance_response(response: &Value) -> Option<SolanaBalance> {
 }
 
 pub fn parse_request_airdrop_response(response: &Value) -> Option<String> {
-    response.get("result")?.as_str().map(|signature| signature.to_string())
+    response
+        .get("result")?
+        .as_str()
+        .map(|signature| signature.to_string())
+}
+
+pub fn build_send_transaction_request(encoded_transaction: &str) -> Value {
+    json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "sendTransaction",
+        "params": [encoded_transaction],
+    })
 }
 
 #[cfg(test)]
@@ -246,5 +254,24 @@ mod tests {
             SolanaRpcError::MissingAirdropSignature.message(),
             "Solana RPC response did not include an airdrop signature"
         );
+    }
+
+    #[test]
+    fn builds_send_transaction_request_json() {
+        let encoded_transaction = "encoded-signed-transaction";
+
+        let request = build_send_transaction_request(encoded_transaction);
+
+        assert_eq!(request["jsonrpc"], "2.0");
+        assert_eq!(request["id"], 1);
+        assert_eq!(request["method"], "sendTransaction");
+        assert_eq!(request["params"][0], encoded_transaction);
+
+        let request_text = request.to_string();
+
+        assert!(!request_text.contains("secret"));
+        assert!(!request_text.contains("private"));
+        assert!(!request_text.contains("mnemonic"));
+        assert!(!request_text.contains("password"));
     }
 }
