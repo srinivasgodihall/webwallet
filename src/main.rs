@@ -15,6 +15,7 @@ mod wallet_model;
 mod wallet_session;
 mod encrypted_wallet;
 mod wallet_password;
+mod encryption_key;
 
 use crate::solana_balance::SolanaBalance;
 use crate::solana_rpc::fetch_solana_devnet_balance;
