@@ -14,3 +14,7 @@ gloo-net = "0.6"
 gloo-timers = { version = "0.3", features = ["futures"] }
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Clipboard", "Navigator", "Window"] }
+argon2 = "0.5.3"
+chacha20poly1305 = "0.11.0"
+base64 = "0.22.1"
+serde = { version = "1.0.228", features = ["derive"] }
