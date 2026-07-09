@@ -36,6 +36,10 @@ impl WalletPassword {
     pub fn len(&self) -> usize {
         self.password.len()
     }
+
+    pub fn expose_password_bytes_for_key_derivation_only(&self) -> &[u8] {
+        self.password.as_bytes()
+    }
 }
 
 
@@ -78,6 +82,17 @@ mod tests {
             .expect("password should be valid");
 
         assert_eq!(password.len(), 11);
+    }
+
+    #[test]
+    fn wallet_password_exposes_bytes_for_key_derivation_only() {
+        let password = WalletPassword::new("password123".to_string())
+            .expect("password should be valid");
+
+        assert_eq!(
+            password.expose_password_bytes_for_key_derivation_only(),
+            b"password123"
+        );
     }
 
     #[test]

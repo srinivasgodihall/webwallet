@@ -7,14 +7,15 @@ edition = "2024"
 leptos = { version = "0.8", features = ["csr"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
-getrandom = { version = "0.2", features = ["js"] }
 bs58 = "0.5"
 serde_json = "1"
 gloo-net = "0.6"
 gloo-timers = { version = "0.3", features = ["futures"] }
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Clipboard", "Navigator", "Window"] }
+web-sys = { version = "0.3", features = ["Clipboard", "Navigator", "Window", "Crypto"] }
 argon2 = "0.5.3"
 chacha20poly1305 = "0.11.0"
 base64 = "0.22.1"
 serde = { version = "1.0.228", features = ["derive"] }
+getrandom = { version = "0.4.2", features = ["wasm_js"] }
+getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
