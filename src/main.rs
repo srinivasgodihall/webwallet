@@ -19,6 +19,7 @@ mod encryption_key;
 mod key_derivation;
 mod wallet_encryption;
 mod secure_random;
+mod wallet_storage;
 
 use crate::solana_balance::SolanaBalance;
 use crate::solana_rpc::fetch_solana_devnet_balance;
