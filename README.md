@@ -69,3 +69,4 @@ http://127.0.0.1:8080/
 ## Learning Goal
 
 The goal is to understand how wallet systems are built step by step: models first, then validation, signing, encryption, storage, and finally lock/unlock flows.
+//////
